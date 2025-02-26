@@ -9,6 +9,7 @@ import (
 
 	"github.com/YaguarEgor/chirpy_server/internal/database"
 	"github.com/google/uuid"
+	"github.com/YaguarEgor/chirpy_server/internal/auth"
 )
 
 type User struct {
@@ -47,7 +48,8 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 	defer r.Body.Close()
 
 	type parameters struct {
-		Email string `json:"email"`
+		Email 	 	string 	`json:"email"`
+		Password 	string 	`json:"password"`
 	}
 
 	var params parameters
@@ -59,7 +61,17 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	user, err := cfg.db.CreateUser(r.Context(), params.Email)
+	hashed_passwd, err := auth.HashPassword(params.Password)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't hash password", err)
+		return
+	}
+
+	user, err := cfg.db.CreateUser(r.Context(), database.CreateUserParams{
+		Email: params.Email,
+		HashedPassword: hashed_passwd,
+	})
+
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't create user", err)
 		return
@@ -153,4 +165,41 @@ func (cfg *apiConfig) handlerGetChirp(w http.ResponseWriter, r *http.Request) {
 		Body: chirp.Body,
 		UserID: chirp.UserID,
 	})
+}
+
+func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+
+	type parameters struct {
+		Email 	 	string 	`json:"email"`
+		Password 	string 	`json:"password"`
+	}
+
+	var params parameters
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&params)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't decode request", err)
+		return
+	}
+
+	user, err := cfg.db.GetUserByEmail(r.Context(), params.Email)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't find user with that email", err)
+		return
+	}
+
+	err = auth.CheckPasswordHash(params.Password, user.HashedPassword)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Incorrect email or password", err)
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, User {
+		ID: user.ID,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+		Email: user.Email,
+	})
+
 }
