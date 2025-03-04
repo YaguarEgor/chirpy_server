@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"sort"
 	"time"
 
 	"github.com/YaguarEgor/chirpy_server/internal/auth"
@@ -70,11 +71,27 @@ func (cfg *apiConfig) handlerChirps(w http.ResponseWriter, r *http.Request) {
 
 func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
+	var chirps []database.Chirp
+	var err error
 
-	chirps, err := cfg.db.GetChirps(r.Context())
+	id := r.URL.Query().Get("author_id")
+	order := r.URL.Query().Get("sort")
+
+
+	if id != "" {
+		chirps, err = cfg.db.GetChirpsByAuthor(r.Context(), uuid.MustParse(id))
+	} else {
+		chirps, err = cfg.db.GetChirps(r.Context())
+	}
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't get chirps", err)
 		return
+	}
+
+	if order == "desc" {
+		sort.Slice(chirps, func(i, j int) bool {
+			return chirps[i].CreatedAt.After(chirps[j].CreatedAt)
+		})
 	}
 
 	data := []Chirp {}

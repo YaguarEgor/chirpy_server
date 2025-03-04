@@ -18,6 +18,7 @@ type User struct {
 	CreatedAt 	 time.Time 	`json:"created_at"`
 	UpdatedAt 	 time.Time 	`json:"updated_at"`
 	Email     	 string    	`json:"email"`
+	IsChirpyRed	 bool		`json:"is_chirpy_red"`
 }
 
 
@@ -76,6 +77,7 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,
 		Email:     user.Email,
+		IsChirpyRed: user.IsChirpyRed,
 	}
 	respondWithJSON(w, 201, my_user)
 }
@@ -142,6 +144,7 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 			CreatedAt: user.CreatedAt,
 			UpdatedAt: user.UpdatedAt,
 			Email: user.Email,
+			IsChirpyRed: user.IsChirpyRed,
 		},
 		JWTToken: jwt_token,
 		RefreshToken: refresh_token,
@@ -242,6 +245,7 @@ func (cfg *apiConfig) handlerEditUser(w http.ResponseWriter, r *http.Request) {
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,
 		Email: user.Email,
+		IsChirpyRed: user.IsChirpyRed,
 	})
 
 }

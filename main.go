@@ -17,6 +17,7 @@ type apiConfig struct {
 	db              *database.Queries
 	secret_key		string
 	platform 		string
+	polka_key		string
 }
 
 func main() {
@@ -27,6 +28,7 @@ func main() {
 	db_url := os.Getenv("DB_URL")
 	platform := os.Getenv("PLATFORM")
 	secret_key := os.Getenv("TOKEN")
+	polka_key := os.Getenv("POLKA_KEY")
 	db, err := sql.Open("postgres", db_url)
 	if err != nil {
 		log.Fatalf("error when opening db")
@@ -39,6 +41,7 @@ func main() {
 		db:             dbQueries,
 		secret_key: 	secret_key,
 		platform: 		platform,
+		polka_key: 		polka_key,
 	}
 	mux := http.NewServeMux()
 	mux.Handle("/app/", http.StripPrefix("/app", apiCfg.middlewareMetricsInc(http.FileServer(http.Dir(filepathRoot)))))
@@ -54,6 +57,7 @@ func main() {
 	mux.HandleFunc("POST /api/revoke", apiCfg.handlerRevokeToken)
 	mux.HandleFunc("PUT /api/users", apiCfg.handlerEditUser)
 	mux.HandleFunc("DELETE /api/chirps/{chirpID}", apiCfg.handlerDeleteChirp)
+	mux.HandleFunc("POST /api/polka/webhooks", apiCfg.handlerWebhook)
 	server := &http.Server{
 		Handler: mux,
 		Addr:    ":" + port,
